@@ -6,7 +6,7 @@ resource "aws_db_subnet_group" "db_subnets" {
 
 # RDS Instance
 resource "aws_db_instance" "mysql" {
-  identifier              = "${var.project_name}-db"
+  identifier              = "db-${var.project_name}"
   engine                  = "mysql"
   instance_class          = "db.t3.micro"
   allocated_storage       = 20
