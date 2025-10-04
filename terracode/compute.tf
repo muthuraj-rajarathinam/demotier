@@ -3,11 +3,14 @@ resource "aws_launch_template" "app" {
   name_prefix   = "${var.project_name}-lt"
   image_id      = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
-  key_name      = "Jenkins_cicd" # replace with your key
-
-  user_data = base64encode(file("scripts/install_app.sh"))
-
+  key_name      = "Jenkins_cicd"
   vpc_security_group_ids = [aws_security_group.app_sg.id]
+
+  user_data = base64encode(templatefile("${path.module}/scripts/install_app.sh.tpl", {
+    db_endpoint = aws_db_instance.mysql.endpoint
+    db_user     = var.db_username
+    db_pass     = var.db_password
+  }))
 }
 
 # Auto Scaling Group
