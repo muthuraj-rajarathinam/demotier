@@ -1,0 +1,15 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Secrets (be careful not to commit keys)
+*.pem
+*.key
+.env
