@@ -6,7 +6,7 @@ resource "aws_launch_template" "app" {
   key_name      = "Jenkins_cicd"
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
-  user_data = base64encode(templatefile("${path.module}/scripts/install_app.sh.tpl", {
+  user_data = base64encode(templatefile("${path.module}/../scripts/install_app.sh.tpl", {
     db_endpoint = aws_db_instance.mysql.endpoint
     db_user     = var.db_username
     db_pass     = var.db_password
