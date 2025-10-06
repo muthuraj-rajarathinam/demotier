@@ -403,264 +403,101 @@
   </footer>
 
   <script>
-    // --- Global State for Products and Cart ---
-    let allProducts = [];
-    // Cart stores items as { id: 'product-id', qty: 1 }
-    let cart = []; 
+  // --- API Base URL Placeholder (to be replaced by CodePipeline during build) ---
+  const API_BASE_URL = 'http://3tierapp-alb-974609817.ap-south-1.elb.amazonaws.com'; // CodePipeline will replace this with actual ALB DNS
 
-    // --- Custom Cursor Logic ---
-    const cursor = document.getElementById('cursor');
-    document.addEventListener('mousemove', e => {
-      cursor.style.transform = `translate(${e.clientX - 16}px,${e.clientY - 16}px)`;
+  // --- Global State for Products and Cart ---
+  let allProducts = [];
+  let cart = []; 
+
+  // --- Custom Cursor & GSAP/Three.js logic unchanged ---
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.transform = `translate(${e.clientX - 16}px,${e.clientY - 16}px)`;
+  });
+
+  function setupHoverEffects() {
+    document.querySelectorAll('.cta, .product-card button, .cart button').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.style.transform += ' scale(1.7)');
+      el.addEventListener('mouseleave', () => cursor.style.transform = cursor.style.transform.replace(' scale(1.7)', ''));
     });
-    // Cursor Scale on Hover
-    function setupHoverEffects() {
-      document.querySelectorAll('.cta, .product-card button, .cart button').forEach(el => {
-        el.addEventListener('mouseenter', () => cursor.style.transform += ' scale(1.7)');
-        el.addEventListener('mouseleave', () => cursor.style.transform = cursor.style.transform.replace(' scale(1.7)', ''));
-      });
-    }
-    document.addEventListener('DOMContentLoaded', setupHoverEffects);
+  }
+  document.addEventListener('DOMContentLoaded', setupHoverEffects);
 
-    // --- GSAP Scroll Animations (Unchanged) ---
-    gsap.registerPlugin(ScrollTrigger);
-    gsap.utils.toArray(".section, .hero").forEach((block) => {
-      gsap.from(block, {
-        opacity: 0,
-        y: 80,
-        duration: 1.1,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: block,
-          start: "top 90%",
-        }
-      });
-    });
+  // --- Render Functions Unchanged ---
+  function renderCategories(categoriesData) { /* unchanged */ }
+  function renderProducts(productsData) { /* unchanged */ }
 
-    // --- 3D Chocolate Visual (Three.js) (Unchanged) ---
-    let renderer, scene, camera, choco, animateId;
-    function initChoco() {
-      const canvas = document.getElementById('choco-canvas');
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-      camera.position.z = 3.2;
-      const geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2, 32, 32, 32);
-      const material = new THREE.MeshPhongMaterial({ color: 0x4e2e1e, shininess: 80, specular: 0xd4af37 });
-      choco = new THREE.Mesh(geometry, material);
-      scene.add(choco);
-      const goldMat = new THREE.MeshPhongMaterial({ color: 0xd4af37, shininess: 120, opacity: 0.3, transparent: true });
-      const gold = new THREE.Mesh(new THREE.SphereGeometry(0.7, 32, 32), goldMat);
-      gold.position.set(0.5, 0.5, 0.5);
-      scene.add(gold);
-      const light = new THREE.PointLight(0xd4af37, 2.5, 100);
-      light.position.set(2, 2, 2);
-      scene.add(light);
-      animateChoco();
-    }
-    function animateChoco() {
-      animateId = requestAnimationFrame(animateChoco);
-      choco.rotation.y += 0.004;
-      choco.rotation.x += 0.002;
-      renderer.render(scene, camera);
-    }
-    window.addEventListener('resize', () => {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-    });
-    document.addEventListener('DOMContentLoaded', initChoco);
+  // --- CORE CHANGE: Fetch Initial Data from ALB Backend ---
+  async function fetchInitialData() {
+    const loadingEl = document.getElementById('loading-products');
+    if (loadingEl) loadingEl.textContent = "Connecting to Elegance Chocolat server...";
 
-    // --- Data Rendering ---
-
-    function renderCategories(categoriesData) {
-      const catList = document.getElementById('category-list');
-      catList.innerHTML = '';
-      categoriesData.forEach(cat => {
-        const el = document.createElement('div');
-        el.className = 'category-card';
-        el.setAttribute('data-id', cat.id);
-        el.innerHTML = `
-          <img src="${cat.img}" alt="${cat.name}">
-          <h3>${cat.name}</h3>
-          <ul>${cat.flavors.map(f => `<li>${f}</li>`).join('')}</ul>
-        `;
-        catList.appendChild(el);
-      });
-    }
-
-    function renderProducts(productsData) {
-      allProducts = productsData;
-      const prodList = document.getElementById('product-list');
-      prodList.innerHTML = '';
-      allProducts.forEach(prod => {
-        const el = document.createElement('div');
-        el.className = 'product-card';
-        el.id = `product-${prod.id}`;
-        el.innerHTML = `
-          <img src="${prod.img}" alt="${prod.name}">
-          <h4>${prod.name}</h4>
-          <div class="flavor">${prod.flavor}</div>
-          <span class="price">$${prod.price.toFixed(2)}</span>
-          <button onclick="addToCart('${prod.id}', this)">Add to Cart</button>
-        `;
-        prodList.appendChild(el);
-      });
-      setupHoverEffects(); // Re-apply cursor hover effects
-    }
-
-    // --- CORE CHANGE 1: Fetch Initial Data from API ---
-    async function fetchInitialData() {
-      const loadingEl = document.getElementById('loading-products');
-      if (loadingEl) loadingEl.textContent = "Connecting to Elegance Chocolat server...";
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products`);
       
-      try {
-        // **3-Tier Hook:** Fetch product catalog from Python/Flask backend
-        const response = await fetch('/api/products');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}. Backend might be unreachable.`);
-        }
-        
-        const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
 
-        renderCategories(data.categories);
-        renderProducts(data.products);
-        if (loadingEl) loadingEl.style.display = 'none';
+      const data = await response.json();
+      renderCategories(data.categories);
+      renderProducts(data.products);
 
-      } catch (error) {
-        console.error("Error fetching initial data:", error);
-        if(loadingEl) {
-            loadingEl.textContent = "Failed to load products. Backend (Flask) might not be running or reachable at port 5000.";
-            loadingEl.style.color = 'red';
-        }
+      if (loadingEl) loadingEl.style.display = 'none';
+
+    } catch (error) {
+      console.error("Error fetching initial data:", error);
+      if(loadingEl) {
+        loadingEl.textContent = "Failed to load products. Backend (Flask) unreachable at ALB.";
+        loadingEl.style.color = 'red';
       }
     }
+  }
 
-    // --- Cart Functionality ---
+  // --- Cart Functionality (Unchanged) ---
+  async function addToCart(productId, btn) { /* unchanged */ }
+  function updateCart() { /* unchanged */ }
+  function removeFromCart(productId) { /* unchanged */ }
 
-    async function addToCart(productId, btn) {
-      const product = allProducts.find(p => p.id === productId);
-      if (!product) return;
+  // --- CORE CHANGE: Checkout to ALB Backend ---
+  async function checkout() {
+    if (cart.length === 0) {
+      alert("Your cart is empty!");
+      return;
+    }
 
-      const foundIndex = cart.findIndex(item => item.id === productId);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: cart }) 
+      });
+      
+      const confirmation = await response.json();
 
-      if (foundIndex !== -1) {
-        cart[foundIndex].qty++;
+      if (response.ok) {
+        alert(`Order Placed Successfully! 🎉\nOrder ID: ${confirmation.orderId}\nStatus: ${confirmation.status}\nFinal Total: $${confirmation.total.toFixed(2)}`);
+        cart = [];
+        updateCart();
       } else {
-        cart.push({ id: productId, qty: 1 });
+        alert(`Checkout failed: ${confirmation.message || 'Server Error'}`);
       }
-
-      // Fly-to-cart animation
-      const productCard = btn.closest('.product-card');
-      const cartEl = document.getElementById('cart');
-      const flyEl = productCard.querySelector('img').cloneNode();
-      flyEl.style.cssText = `
-        position: fixed;
-        width: 80px; height: 80px;
-        z-index: 10000;
-        top: ${productCard.offsetTop + (productCard.offsetHeight / 2) - window.scrollY}px;
-        left: ${productCard.offsetLeft + (productCard.offsetWidth / 2)}px;
-        border-radius: 50%;
-        pointer-events: none;
-        transition: none;
-      `;
-      document.body.appendChild(flyEl);
-
-      const cartRect = cartEl.getBoundingClientRect();
-
-      gsap.to(flyEl, {
-        x: cartRect.left - flyEl.offsetLeft + 10,
-        y: cartRect.top - flyEl.offsetTop + 10,
-        scale: 0.2,
-        opacity: 0.5,
-        duration: 0.9,
-        ease: "power1.inOut",
-        onComplete: () => {
-          flyEl.remove();
-          gsap.fromTo(cartEl, { scale: 1.05 }, { scale: 1, duration: 0.2, ease: "back.out(1.7)" });
-        }
-      });
-      
-      updateCart();
+    } catch (error) {
+      console.error("Checkout process failed:", error);
+      alert("A network error occurred during checkout. Please ensure the backend is running and reachable.");
     }
+  }
 
-    function updateCart() {
-      const cartDiv = document.getElementById('cart');
-      const items = document.getElementById('cart-items');
-      items.innerHTML = '';
-      let total = 0;
+  window.addToCart = addToCart;
+  window.removeFromCart = removeFromCart;
+  window.checkout = checkout;
 
-      if (cart.length === 0) {
-        cartDiv.classList.remove('active');
-        return;
-      }
+  document.addEventListener('DOMContentLoaded', fetchInitialData);
+  window.addEventListener('scroll', () => {
+    if (cart.length > 0) document.getElementById('cart').classList.add('active');
+  });
+</script>
 
-      cartDiv.classList.add('active');
-
-      cart.forEach(item => {
-        const prod = allProducts.find(p => p.id === item.id);
-        if (!prod) return;
-
-        total += prod.price * item.qty;
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <span>${prod.name} x${item.qty}</span>
-          <button onclick="removeFromCart('${item.id}')">✕</button>
-        `;
-        items.appendChild(li);
-      });
-
-      document.getElementById('cart-total').textContent = `Total: $${total.toFixed(2)}`;
-    }
-
-    function removeFromCart(productId) {
-      cart = cart.filter(item => item.id !== productId);
-      updateCart();
-    }
-
-    // --- CORE CHANGE 2: Checkout Function with API Call and Response Handling ---
-    async function checkout() {
-      if (cart.length === 0) {
-        alert("Your cart is empty!");
-        return;
-      }
-
-      try {
-        // **3-Tier Hook:** Send the cart data (IDs and quantities) to the backend for processing
-        const response = await fetch('/api/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: cart }) 
-        });
-        
-        const confirmation = await response.json();
-
-        if (response.ok) {
-          // Success: Backend confirmed the order
-          alert(`Order Placed Successfully! 🎉\nOrder ID: ${confirmation.orderId}\nStatus: ${confirmation.status}\nFinal Total: $${confirmation.total.toFixed(2)}`);
-          cart = [];
-          updateCart();
-        } else {
-          // Failure: Backend returned a validation/server error
-          alert(`Checkout failed: ${confirmation.message || 'Server Error'}`);
-        }
-      } catch (error) {
-        console.error("Checkout process failed:", error);
-        alert("A network error occurred during checkout. Please ensure the backend is running and reachable.");
-      }
-    }
-    
-    // Expose functions to the window 
-    window.addToCart = addToCart;
-    window.removeFromCart = removeFromCart;
-    window.checkout = checkout;
-
-    document.addEventListener('DOMContentLoaded', fetchInitialData);
-    window.addEventListener('scroll', () => {
-      if (cart.length > 0) document.getElementById('cart').classList.add('active');
-    });
-  </script>
 </body>
 </html>

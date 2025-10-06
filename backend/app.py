@@ -107,6 +107,10 @@ def serve_index():
     except FileNotFoundError:
         return "index.html not found", 404
 
+@app.route('/health')
+def health():
+    return "OK", 200
+
 
 # --- 4. API Endpoints ---
 @app.route('/api/products', methods=['GET'])

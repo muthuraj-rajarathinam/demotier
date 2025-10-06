@@ -3,7 +3,7 @@ resource "aws_launch_template" "app" {
   name_prefix   = "${var.project_name}-lt"
   image_id      = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
-  key_name      = "Jenkins_cicd"
+  key_name      = "DEMOEC2"
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   user_data = base64encode(templatefile("${path.module}/../scripts/install_app.sh.tpl", {
@@ -74,5 +74,16 @@ data "aws_ami" "amazon_linux" {
   filter {
     name   = "name"
     values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
+resource "null_resource" "update_frontend_index" {
+  # This ensures the provisioner runs after ALB creation
+  triggers = {
+    alb_dns = aws_lb.app_alb.dns_name
+  }
+
+  provisioner "local-exec" {
+    command = "sed -i 's|__BACKEND_ALB_URL__|http://${aws_lb.app_alb.dns_name}|g' ../frontend/index.html"
   }
 }

@@ -25,7 +25,7 @@ variable "private_subnets" {
 }
 
 variable "instance_type" {
-  default = "t3.micro"
+  default = "t2.micro"
 }
 
 variable "db_username" {
