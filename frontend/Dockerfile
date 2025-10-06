@@ -1,12 +1,11 @@
-# Stage 1: Build (optional if you have build steps)
+# Use official Nginx image
 FROM nginx:latest
 
-# Copy static files to Nginx html directory
+# Copy only your index.html
 COPY index.html /usr/share/nginx/html/
-COPY static/ /usr/share/nginx/html/static/
 
 # Expose port 80
 EXPOSE 80
 
-# Start Nginx
+# Start Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]
