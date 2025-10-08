@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Environment variables will be injected from Terraform (via user data)
-EXPOSE 8080
+EXPOSE 5000
 
 # Use Gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
