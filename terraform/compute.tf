@@ -77,12 +77,12 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-#resource "null_resource" "update_frontend_index" {
+resource "null_resource" "update_frontend_index" {
   # This ensures the provisioner runs after ALB creation
-#  triggers = {
- #   alb_dns = aws_lb.app_alb.dns_name
-  #}
-  #provisioner "local-exec" {
-    #command = "sed -i 's|__BACKEND_ALB_URL__|http://${aws_lb.app_alb.dns_name}|g' ../frontend/index.html"
-  #}
-#}
+triggers = {
+   alb_dns = aws_lb.app_alb.dns_name
+  }
+  provisioner "local-exec" {
+    command = "sed -i 's|__BACKEND_ALB_URL__|http://${aws_lb.app_alb.dns_name}|g' ../frontend/index.html"
+  }
+}
