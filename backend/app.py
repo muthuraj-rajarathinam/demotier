@@ -4,10 +4,13 @@ import uuid
 from datetime import datetime
 from flask import Flask, request, jsonify, send_file
 from contextlib import contextmanager
+from flask import Flask, send_from_directory, request, jsonify
 
 # --- Flask App Configuration ---
 app = Flask(__name__)
-DATABASE = '/home/muthuraj/demo/awsprojects/demotier/backend/elegance_chocolat.db'
+DATABASE = '/app/data/elegance_chocolat.db'
+import os
+os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
 
 # --- Database Utilities ---
 
@@ -89,7 +92,7 @@ def serve_index():
     """Serves the main HTML file to the client."""
     # Assumes index.html is in the same directory as app.py
     try:
-        return send_file('index.html')
+        return send_from_directory("static", "index.html")
     except FileNotFoundError:
         return "Error: index.html not found. Make sure both files are in the same directory.", 404
 

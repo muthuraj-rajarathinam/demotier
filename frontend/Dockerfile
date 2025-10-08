@@ -1,11 +1,9 @@
-# Use official Nginx image
 FROM nginx:latest
 
-# Copy only your index.html
-COPY index.html /usr/share/nginx/html/
+WORKDIR /usr/share/nginx/html
 
-# Expose port 80
+# Copy index.html from frontend folder
+COPY index.html .
+
 EXPOSE 80
-
-# Start Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]

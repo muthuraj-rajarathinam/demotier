@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app code
 COPY . .
+RUN mkdir -p /app/data && chmod 777 /app/data
+
 
 # Environment variables will be injected from Terraform (via user data)
 EXPOSE 5000
